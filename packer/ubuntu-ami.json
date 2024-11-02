@@ -1,0 +1,25 @@
+{
+  "variables": {
+    "aws_region": "ap-south-1",
+    "instance_type": "t2.micro",
+    "ami_name": "ubuntu-ansible-ami-{{timestamp}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "instance_type": "{{user `instance_type`}}",
+      "source_ami": "ami-0dee22c13ea7a9a67",
+      "ssh_username": "ubuntu",
+      "ami_name": "{{user `ami_name`}}",
+      "ami_description": "An Ubuntu AMI built with Packer and configured with Ansible"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "../create_user_docker_java_tools_ebs.yml",
+      "extra_arguments": ["--ssh-extra-args", "-o StrictHostKeyChecking=no"]
+    }
+  ]
+}
