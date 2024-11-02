@@ -1,6 +1,6 @@
 ---
 - name: Setup user, install Docker, Java, and development tools
-  hosts: localhost
+  hosts: all
   connection: ssh
   become: yes
   gather_facts: yes
