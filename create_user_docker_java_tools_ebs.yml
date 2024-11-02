@@ -95,25 +95,66 @@
         state: present
 
     - name: Download and install Terraform
-      ansible.builtin.command:
-        cmd: >
-          curl -fsSL https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip -o terraform.zip &&
-          unzip terraform.zip &&
-          mv terraform /usr/local/bin/ &&
-          rm terraform.zip
+      get_url:
+        url: https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
+        dest: /tmp/terraform.zip
+
+    - name: Unzip Terraform
+      unarchive:
+        src: /tmp/terraform.zip
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move Terraform binary to /usr/local/bin
+      command: mv /tmp/terraform /usr/local/bin/
+
+    - name: Clean up Terraform zip file
+      file:
+        path: /tmp/terraform.zip
+        state: absent
 
     - name: Download and install Packer
-      ansible.builtin.command:
-        cmd: >
-          curl -fsSL https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip -o packer.zip &&
-          unzip packer.zip &&
-          mv packer /usr/local/bin/ &&
-          rm packer.zip
+      get_url:
+        url: https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip
+        dest: /tmp/packer.zip
+
+    - name: Unzip Packer
+      unarchive:
+        src: /tmp/packer.zip
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move Packer binary to /usr/local/bin
+      command: mv /tmp/packer /usr/local/bin/
+
+    - name: Clean up Packer zip file
+      file:
+        path: /tmp/packer.zip
+        state: absent
+
 
     - name: Install AWS CLI v2
-      ansible.builtin.command:
-        cmd: >
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" &&
-          unzip awscliv2.zip &&
-          sudo ./aws/install &&
-          rm -rf awscliv2.zip aws/
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+
+    - name: Unzip AWS CLI v2
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Install AWS CLI v2
+      command: ./aws/install
+      args:
+        chdir: /tmp/
+
+    - name: Clean up AWS CLI installation files
+      file:
+        path: /tmp/awscliv2.zip
+        state: absent
+
+    - name: Remove AWS installation directory
+      file:
+        path: /tmp/aws
+        state: absent
