@@ -4,6 +4,11 @@
   connection: ssh
   become: yes
   gather_facts: yes
+  vars:
+    volume_id: YOUR_VOLUME_ID  # Replace with your specific volume ID
+    mount_point: /mnt/data      # Directory where the volume will be mounted
+    device_name: /dev/xvdf      # Device name for the volume (adjust as necessary)
+
   tasks:
     - name: Ensure group with GID 3300 exists
       group:
@@ -119,32 +124,46 @@
 
     - name: Ensure /mnt/data directory exists for EBS mount
       file:
-        path: /mnt/data
+        path: "{{ mount_point }}"
         state: directory
         mode: '0755'
 
-    - name: Check if /dev/xvdf is formatted
-      command: lsblk -f | grep -q '/dev/xvdf' || echo 'not formatted'
+    - name: Wait for the instance to be online
+      wait_for:
+        port: 22  # Wait for SSH to be available
+        delay: 10  # Initial delay
+        timeout: 300  # Total timeout for waiting
+        state: started
+
+    - name: Attach EBS volume
+      ec2_vol:
+        region: YOUR_AWS_REGION  # Replace with your region
+        volume_id: "{{ volume_id }}"
+        instance: "{{ ansible_host }}"
+        state: present
+
+    - name: Check if {{ device_name }} is formatted
+      command: lsblk -f | grep -q '{{ device_name }}' || echo 'not formatted'
       register: ebs_format_check
       changed_when: false
 
-    - name: Format /dev/xvdf if not formatted
+    - name: Format {{ device_name }} if not formatted
       filesystem:
         fstype: ext4
-        dev: /dev/xvdf
+        dev: "{{ device_name }}"
       when: ebs_format_check.stdout == 'not formatted'
 
     - name: Mount EBS volume
       mount:
-        path: /mnt/data
-        src: /dev/xvdf
+        path: "{{ mount_point }}"
+        src: "{{ device_name }}"
         fstype: ext4
         state: mounted
 
     - name: Persist EBS volume mount in /etc/fstab
       mount:
-        path: /mnt/data
-        src: /dev/xvdf
+        path: "{{ mount_point }}"
+        src: "{{ device_name }}"
         fstype: ext4
         opts: defaults
         state: present
