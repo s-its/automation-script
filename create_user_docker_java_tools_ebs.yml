@@ -1,0 +1,150 @@
+---
+- name: Setup user, install Docker, Java, development tools, and mount EBS volume
+  hosts: all
+  connection: ssh
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Ensure group with GID 3300 exists
+      group:
+        name: distro
+        gid: 3300
+        state: present
+
+    - name: Create user 'distro' with UID 1100 and GID 3300
+      user:
+        name: distro
+        uid: 1100
+        group: distro
+        state: present
+        shell: /bin/bash  # Specify shell if needed
+
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisite packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+        - unzip
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update apt package index after adding Docker repo
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Add user 'distro' to Docker group for Docker command permissions
+      user:
+        name: distro
+        groups: docker
+        append: yes
+
+    - name: Restart Docker service to apply group permissions
+      service:
+        name: docker
+        state: restarted
+
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Install Java 21
+      apt:
+        name: openjdk-21-jdk
+        state: present
+
+    - name: Set Java 21 as the default version
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
+        priority: 1100  # Higher priority makes Java 21 the default
+        state: present
+
+    - name: Set javac 21 as the default compiler version
+      alternatives:
+        name: javac
+        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
+        priority: 1100
+        state: present
+
+    - name: Install Git
+      apt:
+        name: git
+        state: present
+
+    - name: Download and install Terraform
+      ansible.builtin.command:
+        cmd: >
+          curl -fsSL https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip -o terraform.zip &&
+          unzip terraform.zip &&
+          mv terraform /usr/local/bin/ &&
+          rm terraform.zip
+
+    - name: Download and install Packer
+      ansible.builtin.command:
+        cmd: >
+          curl -fsSL https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip -o packer.zip &&
+          unzip packer.zip &&
+          mv packer /usr/local/bin/ &&
+          rm packer.zip
+
+    - name: Install AWS CLI v2
+      ansible.builtin.command:
+        cmd: >
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" &&
+          unzip awscliv2.zip &&
+          sudo ./aws/install &&
+          rm -rf awscliv2.zip aws/
+
+    - name: Ensure /mnt/data directory exists for EBS mount
+      file:
+        path: /mnt/data
+        state: directory
+        mode: '0755'
+
+    - name: Check if /dev/xvdf is formatted
+      command: lsblk -f | grep -q '/dev/xvdf' || echo 'not formatted'
+      register: ebs_format_check
+      changed_when: false
+
+    - name: Format /dev/xvdf if not formatted
+      filesystem:
+        fstype: ext4
+        dev: /dev/xvdf
+      when: ebs_format_check.stdout == 'not formatted'
+
+    - name: Mount EBS volume
+      mount:
+        path: /mnt/data
+        src: /dev/xvdf
+        fstype: ext4
+        state: mounted
+
+    - name: Persist EBS volume mount in /etc/fstab
+      mount:
+        path: /mnt/data
+        src: /dev/xvdf
+        fstype: ext4
+        opts: defaults
+        state: present
