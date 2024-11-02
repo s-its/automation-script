@@ -7,7 +7,7 @@ variable "instance_type" {
 }
 
 variable "ami_name" {
-  default = "ubuntu-ansible-ami-${timestamp()}"
+  default = "ubuntu-ansible-ami-1"
 }
 
 source "amazon-ebs" "ubuntu_source" {
