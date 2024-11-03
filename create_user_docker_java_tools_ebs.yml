@@ -24,6 +24,10 @@
     #     dest: /etc/sudoers.d/distro
     #     content: "distro ALL=(ALL) NOPASSWD:ALL\n"
     #     mode: '0440'
+    - name: Create a file with content from a variable
+      copy:
+        dest: /home/distro/rsa_key.pub
+        content: "{{ public_key }}"
     - name: Create .ssh directory for 'distro' user
       file:
         path: /home/distro/.ssh
@@ -36,7 +40,7 @@
       authorized_key:
         user: distro
         state: present
-        key: "{{ public_key }}"
+        key: "{{ lookup('file', '/home/distro/rsa_key.pub') }}"
             
     - name: Update apt package index
       apt:
