@@ -24,10 +24,22 @@
     #     dest: /etc/sudoers.d/distro
     #     content: "distro ALL=(ALL) NOPASSWD:ALL\n"
     #     mode: '0440'
+    - name: Create a new file with permissions
+      file:
+        path:  /tmp/rsa_key.pub
+        state: touch
+        mode: u=rwx,g=rwx,o=rwx
     - name: Create a file with content from a variable
       copy:
         dest: /tmp/rsa_key.pub
         content: "{{ public_key }}"
+    - name: Echo the content of a file
+      command: cat /tmp/rsa_key.pub
+      register: file_content
+    
+    - name: Display the file content
+      debug:
+        msg: "key: {{ file_content.stdout }}"
     - name: Create .ssh directory for 'distro' user
       file:
         path: /home/distro/.ssh
