@@ -34,7 +34,7 @@ source "amazon-ebs" "ubuntu_source" {
   instance_type  = var.instance_type
   source_ami     = "ami-0dee22c13ea7a9a67"
   ssh_username   = "ubuntu"
-  ami_name       = "ubuntu-ansible-ami-${env.COMMIT_ID}"
+  ami_name       = "ubuntu-ansible-ami-${COMMIT_ID}"
   ami_description = "An Ubuntu AMI built with Packer and configured with Ansible"
 }
 
