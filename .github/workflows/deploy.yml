@@ -39,5 +39,5 @@ jobs:
           DISTRO_PUBLIC_KEY: ${{ secrets.DISTRO_PUBLIC_KEY }}
           COMMIT_ID: ${{ steps.set_commit_id.outputs.COMMIT_ID }}
         run: |
-          packer build -var "public_key=${DISTRO_PUBLIC_KEY}" -var "commit_id=${COMMIT_ID}" ubuntu-ami.pkr.hcl
+          packer build -var "public_key=\"${DISTRO_PUBLIC_KEY}\"" -var "commit_id=${COMMIT_ID}" ubuntu-ami.pkr.hcl
 
