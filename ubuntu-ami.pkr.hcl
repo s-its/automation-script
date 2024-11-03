@@ -11,6 +11,14 @@ packer {
   }
 }
 
+variable "commit_id" {
+  default = ""
+}
+
+variable "public_key" {
+  default = ""
+}
+
 variable "aws_region" {
   default = "ap-south-1"
 }
@@ -20,7 +28,7 @@ variable "instance_type" {
 }
 
 variable "ami_name" {
-  default = "ubuntu-ansible-ami-1"
+  default = "ubuntu-ansible-ami-{{user `commit_id`}}"
 }
 
 source "amazon-ebs" "ubuntu_source" {
@@ -37,6 +45,6 @@ build {
 
   provisioner "ansible" {
     playbook_file = "create_user_docker_java_tools_ebs.yml"
-    extra_arguments = ["--ssh-extra-args", "-o StrictHostKeyChecking=no"]
+    extra_arguments = ["--ssh-extra-args", "-o StrictHostKeyChecking=no","public_key={{user `public_key`}}"]
   }
 }
