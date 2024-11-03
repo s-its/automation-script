@@ -45,7 +45,7 @@ build {
     playbook_file = "create_user_docker_java_tools_ebs.yml"
     extra_arguments = [
         "--extra-vars",
-        "public_key={{user `public_key`}}"
+        "public_key=${var.public_key}"
     ]
   }
 }
