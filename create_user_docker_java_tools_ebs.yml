@@ -26,49 +26,10 @@
         mode: '0440'
 
     - name: Setup SSH for 'distro' user
-      block:
-        - name: Create .ssh directory for distro user
-          file:
-            path: /home/distro/.ssh
-            state: directory
-            owner: distro
-            group: distro
-            mode: '0700'
-
-        - name: Generate SSH key pair for 'distro' user
-          command: ssh-keygen -t rsa -b 2048 -f /home/distro/.ssh/id_rsa -N ""
-          args:
-            creates: /home/distro/.ssh/id_rsa
-
-        - name: Set permissions for private SSH key
-          file:
-            path: /home/distro/.ssh/id_rsa
-            owner: distro
-            group: distro
-            mode: '0600'
-
-        - name: Set permissions for public SSH key
-          file:
-            path: /home/distro/.ssh/id_rsa.pub
-            owner: distro
-            group: distro
-            mode: '0644'
-
-        - name: Add public SSH key to authorized_keys
-          copy:
-            src: /home/distro/.ssh/id_rsa.pub
-            dest: /home/distro/.ssh/authorized_keys
-            owner: distro
-            group: distro
-            mode: '0600'
-
-        - name: Display SSH public key
-          command: cat /home/distro/.ssh/id_rsa.pub
-          register: ssh_public_key
-
-        - name: Show SSH public key for external use
-          debug:
-            msg: "Use this SSH public key to access 'distro' user:\n{{ ssh_public_key.stdout }}"
+      authorized_key:
+        user: distro
+        state: present
+        key: "{{ public_key }}"
             
     - name: Update apt package index
       apt:
