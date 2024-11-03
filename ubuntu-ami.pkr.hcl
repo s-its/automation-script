@@ -36,7 +36,7 @@ build {
   sources = ["source.amazon-ebs.ubuntu_source"]
 
   provisioner "ansible" {
-    playbook_file = "../create_user_docker_java_tools_ebs.yml"
+    playbook_file = "create_user_docker_java_tools_ebs.yml"
     extra_arguments = ["--ssh-extra-args", "-o StrictHostKeyChecking=no"]
   }
 }
