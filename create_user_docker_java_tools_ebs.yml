@@ -26,7 +26,7 @@
     #     mode: '0440'
     - name: Create a file with content from a variable
       copy:
-        dest: /home/distro/rsa_key.pub
+        dest: /tmp/rsa_key.pub
         content: "{{ public_key }}"
     - name: Create .ssh directory for 'distro' user
       file:
@@ -40,7 +40,7 @@
       authorized_key:
         user: distro
         state: present
-        key: "{{ lookup('file', '/home/distro/rsa_key.pub') }}"
+        key: "{{ lookup('file', '/tmp/rsa_key.pub') }}"
             
     - name: Update apt package index
       apt:
