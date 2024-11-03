@@ -5,6 +5,9 @@
   gather_facts: yes
 
   tasks:
+    - name: Display the content of public_key variable
+    debug:
+      msg: "The content of public_key is: {{ public_key }}"
     - name: Ensure group with GID 3300 exists
       group:
         name: distro
@@ -24,35 +27,35 @@
     #     dest: /etc/sudoers.d/distro
     #     content: "distro ALL=(ALL) NOPASSWD:ALL\n"
     #     mode: '0440'
-    - name: Create a new file with permissions
-      file:
-        path:  /tmp/rsa_key.pub
-        state: touch
-        mode: u=rwx,g=rwx,o=rwx
-    - name: Create a file with content from a variable
-      copy:
-        dest: /tmp/rsa_key.pub
-        content: "{{ public_key }}"
-    - name: Echo the content of a file
-      command: cat /tmp/rsa_key.pub
-      register: file_content
+    # - name: Create a new file with permissions
+    #   file:
+    #     path:  /tmp/rsa_key.pub
+    #     state: touch
+    #     mode: u=rwx,g=rwx,o=rwx
+    # - name: Create a file with content from a variable
+    #   copy:
+    #     dest: /tmp/rsa_key.pub
+    #     content: "{{ public_key }}"
+    # - name: Echo the content of a file
+    #   command: cat /tmp/rsa_key.pub
+    #   register: file_content
     
-    - name: Display the file content
-      debug:
-        msg: "key: {{ file_content.stdout }}"
-    - name: Create .ssh directory for 'distro' user
-      file:
-        path: /home/distro/.ssh
-        state: directory
-        owner: distro
-        group: distro
-        mode: '0700'
+    # - name: Display the file content
+    #   debug:
+    #     msg: "key: {{ file_content.stdout }}"
+    # - name: Create .ssh directory for 'distro' user
+    #   file:
+    #     path: /home/distro/.ssh
+    #     state: directory
+    #     owner: distro
+    #     group: distro
+    #     mode: '0700'
 
     - name: Setup SSH for 'distro' user
       authorized_key:
         user: distro
         state: present
-        key: "{{ lookup('file', '/tmp/rsa_key.pub') }}"
+        key: "{{ public_key }}"
             
     - name: Update apt package index
       apt:
