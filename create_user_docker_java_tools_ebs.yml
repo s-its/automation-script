@@ -1,7 +1,6 @@
 ---
-- name: Setup user, install Docker, Java, and development tools
+- name: Setup user, install Docker, Java, development tools, and configure SSH for user 'distro'
   hosts: all
-  connection: ssh
   become: yes
   gather_facts: yes
 
@@ -18,8 +17,59 @@
         uid: 1100
         group: distro
         state: present
-        shell: /bin/bash  # Specify shell if needed
+        shell: /bin/bash
 
+    - name: Grant 'distro' user sudo privileges without password prompt
+      copy:
+        dest: /etc/sudoers.d/distro
+        content: "distro ALL=(ALL) NOPASSWD:ALL\n"
+        mode: '0440'
+
+    - name: Setup SSH for 'distro' user
+      block:
+        - name: Create .ssh directory for distro user
+          file:
+            path: /home/distro/.ssh
+            state: directory
+            owner: distro
+            group: distro
+            mode: '0700'
+
+        - name: Generate SSH key pair for 'distro' user
+          command: ssh-keygen -t rsa -b 2048 -f /home/distro/.ssh/id_rsa -N ""
+          args:
+            creates: /home/distro/.ssh/id_rsa
+
+        - name: Set permissions for private SSH key
+          file:
+            path: /home/distro/.ssh/id_rsa
+            owner: distro
+            group: distro
+            mode: '0600'
+
+        - name: Set permissions for public SSH key
+          file:
+            path: /home/distro/.ssh/id_rsa.pub
+            owner: distro
+            group: distro
+            mode: '0644'
+
+        - name: Add public SSH key to authorized_keys
+          copy:
+            src: /home/distro/.ssh/id_rsa.pub
+            dest: /home/distro/.ssh/authorized_keys
+            owner: distro
+            group: distro
+            mode: '0600'
+
+        - name: Display SSH public key
+          command: cat /home/distro/.ssh/id_rsa.pub
+          register: ssh_public_key
+
+        - name: Show SSH public key for external use
+          debug:
+            msg: "Use this SSH public key to access 'distro' user:\n{{ ssh_public_key.stdout }}"
+            
     - name: Update apt package index
       apt:
         update_cache: yes
@@ -35,137 +85,128 @@
         - software-properties-common
         - unzip
 
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+    - name: Install Docker and add user 'distro' to Docker group
+      block:
+        - name: Add Docker GPG key
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
 
-    - name: Add Docker APT repository
-      apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-        state: present
+        - name: Add Docker APT repository
+          apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
 
-    - name: Update apt package index after adding Docker repo
-      apt:
-        update_cache: yes
+        - name: Update apt package index after adding Docker repo
+          apt:
+            update_cache: yes
 
-    - name: Install Docker
-      apt:
-        name: docker-ce
-        state: present
+        - name: Install Docker
+          apt:
+            name: docker-ce
+            state: present
 
-    - name: Add user 'distro' to Docker group for Docker command permissions
-      user:
-        name: distro
-        groups: docker
-        append: yes
+        - name: Add 'distro' user to Docker group
+          user:
+            name: distro
+            groups: docker
+            append: yes
 
-    - name: Restart Docker service to apply group permissions
-      service:
-        name: docker
-        state: restarted
+        - name: Restart Docker service to apply group changes
+          service:
+            name: docker
+            state: restarted
 
-    - name: Install Java 21
-      apt:
-        name: openjdk-21-jdk
-        state: present
+    - name: Install Java JDKs and set Java 21 as default
+      block:
+        - name: Install Java 21
+          apt:
+            name: openjdk-21-jdk
+            state: present
 
-    - name: Install Java 17
-      apt:
-        name: openjdk-17-jdk
-        state: present
+        - name: Install Java 17
+          apt:
+            name: openjdk-17-jdk
+            state: present
 
-    - name: Configure Java 21 as the default version
-      alternatives:
-        name: java
-        link: /usr/bin/java
-        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
-        priority: 1100
-        state: present
+        - name: Set Java 21 as default
+          alternatives:
+            name: java
+            link: /usr/bin/java
+            path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
+            priority: 1100
+            state: present
 
-    - name: Configure javac 21 as the default compiler
-      alternatives:
-        name: javac
-        link: /usr/bin/javac
-        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
-        priority: 1100
-        state: present
-        
-    - name: Verify Java version
-      command: java -version
-      register: java_version_output
-      changed_when: false
-      
-    - name: Display Java version
-      debug:
-        var: java_version_output.stdout
+        - name: Set javac 21 as default compiler
+          alternatives:
+            name: javac
+            link: /usr/bin/javac
+            path: /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
+            priority: 1100
+            state: present
+
+        - name: Verify Java version
+          command: java -version
+          register: java_version_output
+          changed_when: false
+          
+        - name: Display Java version
+          debug:
+            var: java_version_output.stdout
 
     - name: Install Git
       apt:
         name: git
         state: present
 
-    - name: Download and install Terraform
-      get_url:
-        url: https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
-        dest: /tmp/terraform.zip
+    - name: Install Terraform, Packer, and AWS CLI
+      block:
+        - name: Install Terraform
+          get_url:
+            url: https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
+            dest: /tmp/terraform.zip
 
-    - name: Unzip Terraform
-      unarchive:
-        src: /tmp/terraform.zip
-        dest: /tmp/
-        remote_src: yes
+        - name: Unzip and move Terraform binary
+          unarchive:
+            src: /tmp/terraform.zip
+            dest: /usr/local/bin/
+            remote_src: yes
+            extra_opts: [ "-j" ]
 
-    - name: Move Terraform binary to /usr/local/bin
-      command: mv /tmp/terraform /usr/local/bin/
+        - name: Install Packer
+          get_url:
+            url: https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip
+            dest: /tmp/packer.zip
 
-    - name: Clean up Terraform zip file
-      file:
-        path: /tmp/terraform.zip
-        state: absent
+        - name: Unzip and move Packer binary
+          unarchive:
+            src: /tmp/packer.zip
+            dest: /usr/local/bin/
+            remote_src: yes
+            extra_opts: [ "-j" ]
 
-    - name: Download and install Packer
-      get_url:
-        url: https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip
-        dest: /tmp/packer.zip
+        - name: Install AWS CLI v2
+          get_url:
+            url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+            dest: /tmp/awscliv2.zip
 
-    - name: Unzip Packer
-      unarchive:
-        src: /tmp/packer.zip
-        dest: /tmp/
-        remote_src: yes
+        - name: Unzip and install AWS CLI
+          unarchive:
+            src: /tmp/awscliv2.zip
+            dest: /tmp/
+            remote_src: yes
 
-    - name: Move Packer binary to /usr/local/bin
-      command: mv /tmp/packer /usr/local/bin/
+        - name: Run AWS CLI install script
+          command: ./aws/install
+          args:
+            chdir: /tmp/
 
-    - name: Clean up Packer zip file
-      file:
-        path: /tmp/packer.zip
-        state: absent
-
-
-    - name: Install AWS CLI v2
-      get_url:
-        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-        dest: /tmp/awscliv2.zip
-
-    - name: Unzip AWS CLI v2
-      unarchive:
-        src: /tmp/awscliv2.zip
-        dest: /tmp/
-        remote_src: yes
-
-    - name: Install AWS CLI v2
-      command: ./aws/install
-      args:
-        chdir: /tmp/
-
-    - name: Clean up AWS CLI installation files
-      file:
-        path: /tmp/awscliv2.zip
-        state: absent
-
-    - name: Remove AWS installation directory
-      file:
-        path: /tmp/aws
-        state: absent
+        - name: Cleanup downloaded files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/terraform.zip
+            - /tmp/packer.zip
+            - /tmp/awscliv2.zip
+            - /tmp/aws
