@@ -36,6 +36,10 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: echo "AWS credentials are set."
 
+      - name: Initialize Packer
+        run: |
+          packer init ubuntu-ami.pkr.hcl
+
       - name: Build AMI with Packer
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
