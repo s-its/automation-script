@@ -65,29 +65,40 @@
         name: docker
         state: restarted
 
-    - name: Install Java 17
-      apt:
-        name: openjdk-17-jdk
-        state: present
-
     - name: Install Java 21
       apt:
         name: openjdk-21-jdk
         state: present
 
-    - name: Set Java 21 as the default version
-      alternatives:
-        name: java
-        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
-        priority: 1100  # Higher priority makes Java 21 the default
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
         state: present
 
-    - name: Set javac 21 as the default compiler version
+    - name: Configure Java 21 as the default version
+      alternatives:
+        name: java
+        link: /usr/bin/java
+        path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
+        priority: 1100
+        state: present
+
+    - name: Configure javac 21 as the default compiler
       alternatives:
         name: javac
+        link: /usr/bin/javac
         path: /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
         priority: 1100
         state: present
+        
+    - name: Verify Java version
+      command: java -version
+      register: java_version_output
+      changed_when: false
+      
+    - name: Display Java version
+      debug:
+        var: java_version_output.stdout
 
     - name: Install Git
       apt:
