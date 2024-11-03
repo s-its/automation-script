@@ -34,7 +34,7 @@ source "amazon-ebs" "ubuntu_source" {
   instance_type  = var.instance_type
   source_ami     = "ami-0dee22c13ea7a9a67"
   ssh_username   = "ubuntu"
-  ami_name       = "ubuntu-ansible-ami-{{user `commit_id`}}-{{timestamp}}"
+  ami_name       = "ubuntu-ansible-ami-${env.COMMIT_ID}"
   ami_description = "An Ubuntu AMI built with Packer and configured with Ansible"
 }
 
@@ -43,6 +43,6 @@ build {
 
   provisioner "ansible" {
     playbook_file = "create_user_docker_java_tools_ebs.yml"
-    extra_arguments = ["--ssh-extra-args", "-o StrictHostKeyChecking=no","public_key={{user `public_key`}}"]
+    extra_arguments = ["--ssh-extra-args", "-o StrictHostKeyChecking=no","public_key=${env.DISTRO_PUBLIC_KEY}"]
   }
 }
