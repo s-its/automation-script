@@ -129,30 +129,13 @@
             name: openjdk-17-jdk
             state: present
 
-        - name: Set Java 21 as default
-          alternatives:
-            name: java
-            link: /usr/bin/java
-            path: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
-            priority: 1100
-            state: present
 
-        - name: Set javac 21 as default compiler
-          alternatives:
-            name: javac
-            link: /usr/bin/javac
-            path: /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
-            priority: 1100
+        - name: Set JAVA_HOME environment variable to Java 21 for all users
+          lineinfile:
+            path: /etc/environment
+            regexp: '^JAVA_HOME='
+            line: 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64'
             state: present
-
-        - name: Verify Java version
-          command: java -version
-          register: java_version_output
-          changed_when: false
-          
-        - name: Display Java version
-          debug:
-            var: java_version_output.stdout
 
     - name: Install Git
       apt:
