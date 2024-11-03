@@ -29,16 +29,12 @@ variable "instance_type" {
   default = "t2.micro"
 }
 
-variable "ami_name" {
-  default = "ubuntu-ansible-ami-{{user `commit_id`}}"
-}
-
 source "amazon-ebs" "ubuntu_source" {
   region         = var.aws_region
   instance_type  = var.instance_type
   source_ami     = "ami-0dee22c13ea7a9a67"
   ssh_username   = "ubuntu"
-  ami_name       = var.ami_name
+  ami_name       = "ubuntu-ansible-ami-{{user `commit_id`}}-{{timestamp}}"
   ami_description = "An Ubuntu AMI built with Packer and configured with Ansible"
 }
 
