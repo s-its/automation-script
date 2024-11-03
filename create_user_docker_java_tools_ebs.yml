@@ -24,12 +24,26 @@
         dest: /etc/sudoers.d/distro
         content: "distro ALL=(ALL) NOPASSWD:ALL\n"
         mode: '0440'
+    - name: Create .ssh directory for 'distro' user
+      file:
+        path: /home/distro/.ssh
+        state: directory
+        owner: distro
+        group: distro
+        mode: '0700'
 
     - name: Setup SSH for 'distro' user
       authorized_key:
         user: distro
         state: present
         key: "{{ public_key }}"
+    - name: Ensure authorized_keys file is present
+      file:
+        path: /home/distro/.ssh/authorized_keys
+        state: touch
+        owner: distro
+        group: distro
+        mode: '0600'
             
     - name: Update apt package index
       apt:
