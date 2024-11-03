@@ -6,8 +6,8 @@
 
   tasks:
     - name: Display the content of public_key variable
-    debug:
-      msg: "The content of public_key is: {{ public_key }}"
+      debug:
+        msg: "The content of public_key is: {{ public_key }}"
     - name: Ensure group with GID 3300 exists
       group:
         name: distro
