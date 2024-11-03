@@ -12,11 +12,13 @@ packer {
 }
 
 variable "commit_id" {
-  default = ""
+  type        = string
+  description = "Commit ID used for tagging the AMI"
 }
 
 variable "public_key" {
-  default = ""
+  type        = string
+  description = "public ssh key for distro user"
 }
 
 variable "aws_region" {
