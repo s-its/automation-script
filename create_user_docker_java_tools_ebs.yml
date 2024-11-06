@@ -37,6 +37,18 @@
         user: distro
         state: present
         key: "{{ public_key }}"
+    - name: Create a private key ssh file
+      file:
+        path: /home/distro/.ssh/id_ed25519         # Specify the file path here
+        state: touch                # Ensure the file exists
+    
+    - name: Set ssh private key for the new file
+      copy:
+        dest: /home/distro/.ssh/id_ed25519         # Ensure this matches the path above
+        content: "{{ private_key }}"  # Replace `your_variable` with the actual variable name containing the content
+        owner: distro
+        group: distro
+        mode: '0400'
             
     - name: Update apt package index
       apt:
@@ -109,6 +121,13 @@
       apt:
         name: git
         state: present
+    - name: Set Git global user name
+      command:
+        cmd: git config --global user.name distro
+    
+    - name: Set Git global user email
+      command:
+        cmd: git config --global user.email distro@s-its.com
 
     - name: Install Terraform, Packer, and AWS CLI
       block:
