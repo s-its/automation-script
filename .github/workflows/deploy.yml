@@ -37,7 +37,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           DISTRO_PUBLIC_KEY: ${{ secrets.DISTRO_PUBLIC_KEY }}
+          DISTRO_SSH_PRIVATE_KEY: ${{ secrets.DISTRO_SSH_PRIVATE_KEY }}
         run: |
           COMMIT_ID=${GITHUB_SHA::8}
-          packer build -var "public_key=\"${DISTRO_PUBLIC_KEY}\"" -var "commit_id=${COMMIT_ID}" ubuntu-ami.pkr.hcl
+          packer build -var "public_key=\"${DISTRO_PUBLIC_KEY}\"" -var "private_key=\"${DISTRO_SSH_PRIVATE_KEY}\"" -var "commit_id=${COMMIT_ID}" ubuntu-ami.pkr.hcl
 

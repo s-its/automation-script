@@ -21,6 +21,11 @@ variable "public_key" {
   description = "public ssh key for distro user"
 }
 
+variable "private_key" {
+  type        = string
+  description = "private ssh key for distro user"
+}
+
 variable "aws_region" {
   default = "ap-south-1"
 }
@@ -45,7 +50,8 @@ build {
     playbook_file = "create_user_docker_java_tools_ebs.yml"
     extra_arguments = [
         "--extra-vars",
-        "public_key=${var.public_key}"
+        "public_key=${var.public_key}",
+	"private_key=${var.private_key}"
     ]
   }
 }
