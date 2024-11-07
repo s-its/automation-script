@@ -39,7 +39,7 @@
         key: "{{ public_key }}"
     - name: Create a private key ssh file
       file:
-        path: /home/distro/.ssh/id_ed25519         # Specify the file path here
+        path: /home/distro/.ssh/id_rsa         # Specify the file path here
         state: touch                # Ensure the file exists
     
     - name: Set ssh private key for the new file
