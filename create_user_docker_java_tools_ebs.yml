@@ -39,12 +39,12 @@
         key: "{{ public_key }}"
     - name: Create a private key ssh file
       file:
-        path: /home/distro/.ssh/id_rsa         # Specify the file path here
+        path: /home/distro/.ssh/id_ed25519         # Specify the file path here
         state: touch                # Ensure the file exists
     
     - name: Set ssh private key for the new file
       copy:
-        dest: /home/distro/.ssh/id_rsa         # Ensure this matches the path above
+        dest: /home/distro/.ssh/id_ed25519         # Ensure this matches the path above
         content: "{{ private_key }}"  # Replace `your_variable` with the actual variable name containing the content
         owner: distro
         group: distro
