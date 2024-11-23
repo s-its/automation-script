@@ -24,8 +24,8 @@ jobs:
 
       - name: Set up AWS Credentials
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         run: echo "AWS credentials are set."
 
       - name: Initialize Packer
@@ -34,8 +34,8 @@ jobs:
 
       - name: Build AMI with Packer
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           DISTRO_PUBLIC_KEY: ${{ secrets.DISTRO_PUBLIC_KEY }}
           DISTRO_SSH_PRIVATE_KEY: ${{ secrets.DISTRO_SSH_PRIVATE_KEY }}
         run: |

@@ -47,7 +47,7 @@ build {
   sources = ["source.amazon-ebs.ubuntu_source"]
 
   provisioner "ansible" {
-    playbook_file = "create_user_docker_java_tools_ebs.yml"
+    playbook_file = "ansible-base-software.yml"
     extra_arguments = [
         "--extra-vars",
         "public_key=${var.public_key} private_key=${var.private_key}"

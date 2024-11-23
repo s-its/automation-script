@@ -1,0 +1,195 @@
+---
+- name: Setup user, install Docker, Java, development tools, and configure SSH for user 'distro'
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Ensure group with GID 3300 exists
+      group:
+        name: distro
+        gid: 3300
+        state: present
+
+    - name: Create user 'distro' with UID 1100 and GID 3300
+      user:
+        name: distro
+        uid: 1100
+        group: distro
+        state: present
+        shell: /bin/bash
+
+    - name: Ensure 'distro' user has root privileges without password prompt
+      copy:
+        dest: /etc/sudoers.d/distro
+        content: "distro ALL=(ALL) NOPASSWD:ALL\n"
+        mode: '0440'
+  
+    - name: Ensure 'distro' user is part of the 'sudo' group
+      user:
+        name: distro
+        groups: sudo
+        append: yes
+        state: present
+
+    - name: Setup SSH for 'distro' user
+      authorized_key:
+        user: distro
+        state: present
+        key: "{{ public_key }}"
+    - name: Create a private key ssh file
+      file:
+        path: /home/distro/.ssh/id_ed25519         # Specify the file path here
+        state: touch                # Ensure the file exists
+    
+    - name: Set ssh private key for the new file
+      copy:
+        dest: /home/distro/.ssh/id_ed25519         # Ensure this matches the path above
+        content: "{{ private_key }}"  # Replace `your_variable` with the actual variable name containing the content
+        owner: distro
+        group: distro
+        mode: '0400'
+            
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisite packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+        - unzip
+
+    - name: Install Docker and add user 'distro' to Docker group
+      block:
+        - name: Add Docker GPG key
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+
+        - name: Add Docker APT repository
+          apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+
+        - name: Update apt package index after adding Docker repo
+          apt:
+            update_cache: yes
+
+        - name: Install Docker
+          apt:
+            name: docker-ce
+            state: present
+
+        - name: Add 'distro' user to Docker group
+          user:
+            name: distro
+            groups: docker
+            append: yes
+
+        - name: Restart Docker service to apply group changes
+          service:
+            name: docker
+            state: restarted
+
+    - name: Install Java JDKs and set Java 21 as default
+      block:
+        - name: Install Java 21
+          apt:
+            name: openjdk-21-jdk
+            state: present
+
+        - name: Install Java 17
+          apt:
+            name: openjdk-17-jdk
+            state: present
+
+
+        - name: Set JAVA_HOME environment variable to Java 21 for all users
+          lineinfile:
+            path: /etc/environment
+            regexp: '^JAVA_HOME='
+            line: 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64'
+            state: present
+
+    - name: Install Git
+      apt:
+        name: git
+        state: present
+    - name: Set Git global user name
+      command:
+        cmd: git config --global user.name distro
+    
+    - name: Set Git global user email
+      command:
+        cmd: git config --global user.email distro@s-its.com
+
+    - name: Install Terraform, Packer, kubectl and AWS CLI
+      block:
+        - name: Install Terraform
+          get_url:
+            url: https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
+            dest: /tmp/terraform.zip
+
+        - name: Unzip and move Terraform binary
+          unarchive:
+            src: /tmp/terraform.zip
+            dest: /usr/local/bin/
+            remote_src: yes
+            extra_opts: [ "-j" ]
+
+        - name: Install Packer
+          get_url:
+            url: https://releases.hashicorp.com/packer/1.8.7/packer_1.8.7_linux_amd64.zip
+            dest: /tmp/packer.zip
+
+        - name: Unzip and move Packer binary
+          unarchive:
+            src: /tmp/packer.zip
+            dest: /usr/local/bin/
+            remote_src: yes
+            extra_opts: [ "-j" ]
+
+        - name: Download kubectl binary
+          get_url:
+            url: https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
+            dest: /tmp/kubectl
+
+        - name: Copy kubectl binary into /usr/local/bin/
+          copy:
+            src: /tmp/kubectl
+            dest: /usr/local/bin/kubectl
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Install AWS CLI v2
+          get_url:
+            url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+            dest: /tmp/awscliv2.zip
+
+        - name: Unzip and install AWS CLI
+          unarchive:
+            src: /tmp/awscliv2.zip
+            dest: /tmp/
+            remote_src: yes
+
+        - name: Run AWS CLI install script
+          command: ./aws/install
+          args:
+            chdir: /tmp/
+
+        - name: Cleanup downloaded files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/terraform.zip
+            - /tmp/packer.zip
+            - /tmp/awscliv2.zip
+            - /tmp/aws
