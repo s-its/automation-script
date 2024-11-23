@@ -164,6 +164,7 @@
           copy:
             src: /tmp/kubectl
             dest: /usr/local/bin/kubectl
+            remote_src: yes
             owner: root
             group: root
             mode: '0755'
