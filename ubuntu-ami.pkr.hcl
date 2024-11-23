@@ -41,6 +41,12 @@ source "amazon-ebs" "ubuntu_source" {
   ssh_username   = "ubuntu"
   ami_name       = "ubuntu-ansible-ami-${var.commit_id}"
   ami_description = "An Ubuntu AMI built with Packer and configured with Ansible"
+  tags = {
+    Name        = "base-eks-image"
+    Purpose     = "eks-node"
+    Environment = "production"
+    CreatedBy   = "packer"
+  }
 }
 
 build {
