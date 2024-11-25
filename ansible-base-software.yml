@@ -59,11 +59,17 @@
         name: "{{ item }}"
         state: present
       loop:
+        - curl
         - apt-transport-https
         - ca-certificates
-        - curl
         - software-properties-common
+        - conntrack
+        - ipvsadm
+        - jq
         - unzip
+        - wget
+        - socat
+        - containerd
 
     - name: Install Docker and add user 'distro' to Docker group
       block:
@@ -128,8 +134,16 @@
     - name: Set Git global user email
       command:
         cmd: git config --global user.email distro@s-its.com
+    - name: Install Kubernetes components
+      shell: |
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+        apt-get update
+        apt-get install -y kubelet kubeadm kubectl
+      args:
+        executable: /bin/bash
 
-    - name: Install Terraform, Packer, kubectl and AWS CLI
+    - name: Install Terraform, Packer and AWS CLI
       block:
         - name: Install Terraform
           get_url:
@@ -155,19 +169,19 @@
             remote_src: yes
             extra_opts: [ "-j" ]
 
-        - name: Download kubectl binary
-          get_url:
-            url: https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
-            dest: /tmp/kubectl
+        # - name: Download kubectl binary
+        #   get_url:
+        #     url: https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl
+        #     dest: /tmp/kubectl
 
-        - name: Copy kubectl binary into /usr/local/bin/
-          copy:
-            src: /tmp/kubectl
-            dest: /usr/local/bin/kubectl
-            remote_src: yes
-            owner: root
-            group: root
-            mode: '0755'
+        # - name: Copy kubectl binary into /usr/local/bin/
+        #   copy:
+        #     src: /tmp/kubectl
+        #     dest: /usr/local/bin/kubectl
+        #     remote_src: yes
+        #     owner: root
+        #     group: root
+        #     mode: '0755'
 
         - name: Install AWS CLI v2
           get_url:
@@ -194,3 +208,54 @@
             - /tmp/packer.zip
             - /tmp/awscliv2.zip
             - /tmp/aws
+    
+    - name: Install AWS CNI Plugin
+      shell: |
+        mkdir -p /etc/cni/net.d
+        mkdir -p /opt/cni/bin
+        curl -o /opt/cni/bin/aws-cni.tar.gz https://github.com/aws/amazon-vpc-cni-k8s/archive/refs/tags/v1.19.0.tar.gz
+        tar -xvf /opt/cni/bin/aws-cni.tar.gz -C /opt/cni/bin/
+      args:
+        executable: /bin/bash
+
+    - name: Configure containerd
+      copy:
+        dest: /etc/containerd/config.toml
+        content: |
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    - name: Enable kernel parameters
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.conf
+      with_items:
+        - { name: net.ipv4.ip_forward, value: 1 }
+        - { name: net.bridge.bridge-nf-call-iptables, value: 1 }
+        - { name: net.bridge.bridge-nf-call-ip6tables, value: 1 }
+
+    - name: Enable required modules
+      shell: |
+        modprobe br_netfilter
+        echo "br_netfilter" >> /etc/modules-load.d/k8s.conf
+        echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.d/99-kubernetes-cri.conf
+        echo "net.bridge.bridge-nf-call-ip6tables=1" >> /etc/sysctl.d/99-kubernetes-cri.conf
+      args:
+        executable: /bin/bash
+
+    - name: Install SSM Agent
+      apt:
+        name: amazon-ssm-agent
+        state: present
+
+    - name: Clean up
+      apt:
+        autoclean: yes
+        autoremove: yes
