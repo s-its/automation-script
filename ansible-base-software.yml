@@ -210,15 +210,6 @@
             - /tmp/packer.zip
             - /tmp/awscliv2.zip
             - /tmp/aws
-    
-    - name: Install AWS CNI Plugin
-      shell: |
-        mkdir -p /etc/cni/net.d
-        mkdir -p /opt/cni/bin
-        curl -o /opt/cni/bin/aws-cni.tar.gz https://github.com/aws/amazon-vpc-cni-k8s/archive/refs/tags/v1.19.0.tar.gz
-        tar -xvf /opt/cni/bin/aws-cni.tar.gz -C /opt/cni/bin/
-      args:
-        executable: /bin/bash
 
     - name: Configure containerd
       copy:
