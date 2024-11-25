@@ -224,13 +224,3 @@
         state: restarted
         enabled: yes
 
-
-    - name: Install SSM Agent
-      apt:
-        name: amazon-ssm-agent
-        state: present
-
-    - name: Clean up
-      apt:
-        autoclean: yes
-        autoremove: yes
