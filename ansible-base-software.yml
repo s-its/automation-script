@@ -224,24 +224,6 @@
         state: restarted
         enabled: yes
 
-    - name: Enable kernel parameters
-      sysctl:
-        name: "{{ item.name }}"
-        value: "{{ item.value }}"
-        sysctl_file: /etc/sysctl.conf
-      with_items:
-        - { name: net.ipv4.ip_forward, value: 1 }
-        - { name: net.bridge.bridge-nf-call-iptables, value: 1 }
-        - { name: net.bridge.bridge-nf-call-ip6tables, value: 1 }
-
-    - name: Enable required modules
-      shell: |
-        modprobe br_netfilter
-        echo "br_netfilter" >> /etc/modules-load.d/k8s.conf
-        echo "net.bridge.bridge-nf-call-iptables=1" >> /etc/sysctl.d/99-kubernetes-cri.conf
-        echo "net.bridge.bridge-nf-call-ip6tables=1" >> /etc/sysctl.d/99-kubernetes-cri.conf
-      args:
-        executable: /bin/bash
 
     - name: Install SSM Agent
       apt:
